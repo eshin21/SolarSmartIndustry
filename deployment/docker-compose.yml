@@ -32,7 +32,7 @@ services:
 networks:
   default:
     name: solar_viz_net
-    external: true
+   # external: true
 
 volumes:
   postgresql-vol:
