@@ -7,7 +7,7 @@ def main():
     files_in_folder = os.listdir(folder_path)
 
     df = pd.DataFrame()
-    date_format = '%d/%m/%Y %H:%M'  #EDITED: Specify the date format of the downloaded data.
+    date_format = '%d/%m/%y %H:%M:%S %p'  #EDITED: Specify the date format of the downloaded data.
 
     for file_name in files_in_folder:
         with open(folder_path + file_name, 'rt', encoding='utf-8') as f:
@@ -34,7 +34,7 @@ def main():
 
 
         44: 'RelativeHumidityMin', #EDITED: Map code 44
-        3: 'RelativeHumidityMax', #EDITED: Map code 46
+        3:  'RelativeHumidityMax', #EDITED: Map code 46
 
         56: 'WindGust_RatxaMaximaVent2m', #EDITED: Windgust Just in Caseç
         57: 'WindDirectionGust_2m', #EDITED: Map code 51
