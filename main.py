@@ -2,8 +2,8 @@ import time
 import pvlib
 import datetime
 import pandas as pd
-import ... # TODO - Pyhton script that contains configuration info of influx
-import ... # TODO - Pyhton script that contains configuration info of the PhotoVoltaic cells
+import influx_config # TODO - Python script that contains configuration info of influx
+import pv_system_config # TODO - Python script that contains configuration info of the PhotoVoltaic cells
 
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
@@ -38,13 +38,16 @@ def _get_pv_structure(scenario_configuration, pv_module, modules_line, columns_a
 def _get_effective_irradiance(scenario_config, solar_position, meteo_data):
     # TODO - Substitute ... to the name of the column that contains Irradiance
     if meteo_data[...] != 0:
+    if meteo_data['Irradiance'] != 0:
         aoi_scenario = pvlib.irradiance.aoi(surface_tilt=scenario_config['tilt'], surface_azimuth=scenario_config['orientation'],
                                             solar_zenith=solar_position.apparent_zenith, solar_azimuth=solar_position.azimuth)
         iam_scenario = pvlib.iam.ashrae(aoi=aoi_scenario)
         effective_irradiance = meteo_data[...]*iam_scenario
+        effective_irradiance = meteo_data['Irradiance']*iam_scenario
 
     else:
         effective_irradiance = meteo_data[...]
+        effective_irradiance = meteo_data['Irradiance']
 
     return effective_irradiance
 
@@ -54,6 +57,9 @@ def _get_temperature_cell(meteo_data):
     temp_cell = pvlib.temperature.faiman(meteo_data[...],
                                          meteo_data[...],
                                          meteo_data[...])
+    temp_cell = pvlib.temperature.faiman(meteo_data['Irradiance'],
+                                         meteo_data['Temperature'],
+                                         meteo_data['Wind'])
     return temp_cell
 
 
@@ -102,6 +108,8 @@ def _send_energy_to_influx_db(influx_conf, write_api, tag_id, report):
     # TODO - Optionally indicate the correct type for the values to the DB
     point_to_store = (...)
     write_api.(...)
+    point_to_store = Point("energy_production").tag("location", tag_id).field("AC", float(report['energyACProduction'])).field("DC", float(report['energyDCProduction']))
+    write_api.write(bucket=influx_conf['influx_bucket'], org=influx_conf['influx_org'], record=point_to_store)
 
 
 def _get_influx_db(influx_conf):
@@ -132,6 +140,8 @@ def main():
     system_UAB = PVSystem(arrays=UAB_array)
 
     meteo_data = _request_meteodata(_folder_data='./WeatherData/Data/')
+    # meteo_data = _request_meteodata(_folder_data='./WeatherData/Data/')
+    meteo_data = None # Mocking data since CSV is unavailable
     while True:
         time_now = datetime.datetime.now(datetime.timezone.utc)
         current_time = time_now.replace(year=2020)
@@ -142,6 +152,7 @@ def main():
 
         # TODO -  Subtitute ... for Irradiance column
         if meteo_specific_UAB is not None and meteo_specific_UAB[...] != 0:
+        if meteo_specific_UAB is not None and meteo_specific_UAB['Irradiance'] != 0:
             effective_irradiance_UAB = _get_effective_irradiance(scenario_config=UAB_config,
                                                                  solar_position=solarpos_UAB,
                                                                  meteo_data=meteo_specific_UAB)
