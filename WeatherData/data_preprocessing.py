@@ -14,8 +14,7 @@ def main():
 
         else:
             with open(folder_path + file_name, 'rt', encoding='utf-8') as f:
-                temp_df = pd.read_csv(f, sep=',', encoding='utf-8', header=0, engine='python')
-            
+                temp_df = pd.read_csv(f, sep=',', encoding='utf-8', header=0, engine='python', decimal=',')
                 temp_df.DATA_LECTURA = pd.to_datetime(temp_df.DATA_LECTURA, format=date_format)
                 temp_df.sort_values(by='DATA_LECTURA', inplace=True)
                 temp_df.reset_index(inplace=True, drop=True)
