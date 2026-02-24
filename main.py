@@ -149,7 +149,10 @@ def main():
 
     while True:
         time_now = datetime.datetime.now(datetime.timezone.utc)
-        current_time = time_now.replace(year=2020)
+        current_time = time_now.replace(year=2026) #simulate the PV system as if it were running in real-time during 2026
+        # current_time = time_now.replace(year=2026, hour=12)  # force midday to see data
+
+
 
         meteo_specific_UAB, prev_time_UAB = _get_specific_data(meteo_data, current_time, prev_time_UAB,
                                                                meteo_specific_UAB)
