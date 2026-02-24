@@ -53,6 +53,7 @@ def main():
         72: 'RainMax', #Precipitacio maxima en 1 minut.
 
         }, inplace=True) #EDITED: Check information about the variable names in the useful information part.
+    folder_path = 'WeatherData/'
     data_weather.to_csv(folder_path + 'meteo_processed.csv')
     
     
