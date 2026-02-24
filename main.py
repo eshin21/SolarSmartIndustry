@@ -4,7 +4,7 @@ import datetime
 import pandas as pd
 import influx_config #EDITED: Import influx config
 import pv_system_config #EDITED: Import pv system config
-
+import os 
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 from pvlib.location import Location
@@ -12,19 +12,24 @@ from pvlib.pvsystem import PVSystem, Array, FixedMount
 
 execution_period = 5
 
-
 def _get_specific_data(full_data, current_time, prev_time_data, prev_data):
-    # TODO - Specific data must be a dictionary with column name as key and the corresponding value as value
+    specific_data = None
+
     if prev_time_data is None:
-        prev_time_data = current_time.replace(hour=current_time.hour-1)
+        prev_time_data = current_time.replace(hour=current_time.hour - 1)
+
+    if full_data is not None and not full_data.empty:
+        # Map current time to the year of the available data
+        data_year = full_data.index[0].year
+        search_time = current_time.replace(year=data_year, tzinfo=None)
 
     # TODO - Return closest data, in 30min intervals, to the requested date after prev_data
-    specific_data = {'CodiEstacio': 'XV', 'RelativeHumidityMax': 83.0, 'Wind': 2.2, 'WindDirection': 141.0,
-                     'Temperature': 17.5, 'RelativeHumidity': 80.0, 'Rain': 0.0, 'Irradiance': 203.0,
-                     'TemperatureMax': 18.2, 'TemperatureMin': 17.0, 'RelativeHumidityMin': 76.0,
-                     'WindGust': 5.4, 'WindDirectionGust': 163.0, 'RainMax': 0.0}
-    return specific_data, prev_time_data
+        idx = full_data.index.get_indexer([search_time], method='nearest')[0]
+        # TODO - Specific data must be a dictionary with column name as key and the corresponding value as value
 
+        specific_data = full_data.iloc[idx].to_dict()
+
+    return specific_data, prev_time_data
 
 def _get_pv_structure(scenario_configuration, pv_module, modules_line, columns_array, name_array):
     scenario_mount = FixedMount(surface_tilt=scenario_configuration['tilt'],
@@ -37,43 +42,48 @@ def _get_pv_structure(scenario_configuration, pv_module, modules_line, columns_a
 
 def _get_effective_irradiance(scenario_config, solar_position, meteo_data):
     # TODO - Substitute ... to the name of the column that contains Irradiance
-    if meteo_data['Irradiance'] != 0: #EDITED: Use Irradiance key
+    if meteo_data['Irradiance'] != 0: 
         aoi_scenario = pvlib.irradiance.aoi(surface_tilt=scenario_config['tilt'], surface_azimuth=scenario_config['orientation'],
                                             solar_zenith=solar_position.apparent_zenith, solar_azimuth=solar_position.azimuth)
         iam_scenario = pvlib.iam.ashrae(aoi=aoi_scenario)
-        effective_irradiance = meteo_data['Irradiance']*iam_scenario #EDITED: Use Irradiance key
+        effective_irradiance = meteo_data['Irradiance']*iam_scenario 
 
     else:
-        effective_irradiance = meteo_data['Irradiance'] #EDITED: Use Irradiance key
-
+        effective_irradiance = meteo_data['Irradiance']
     return effective_irradiance
 
 
+
 def _get_temperature_cell(meteo_data):
-    # TODO - This function requires Irradiance, Air Temperature and Wind Speed information.
-    temp_cell = pvlib.temperature.faiman(meteo_data['Irradiance'], #EDITED: Use Irradiance key
-                                         meteo_data['Temperature'], #EDITED: Use Temperature key
-                                         meteo_data['Wind']) #EDITED: Use Wind key
+    temp_cell = pvlib.temperature.faiman(meteo_data['Irradiance'],
+                                         meteo_data['Temperature'],
+                                         meteo_data['Wind'])
     return temp_cell
 
 
 def _calculate_maximum_power_point(effective_irradiance, temp_cell, pv_module):
-    I_L_ref, I_o_ref, R_s, R_sh_ref, a_ref, Adjust = pvlib.ivtools.sdm.fit_cec_sam(celltype=pv_module['celltype'],
-                                                                                   v_mp=pv_module['v_mp'],
-                                                                                   i_mp=pv_module['i_mp'],
-                                                                                   v_oc=pv_module['v_oc'],
-                                                                                   i_sc=pv_module['i_sc'],
-                                                                                   alpha_sc=pv_module['alpha_sc'],
-                                                                                   beta_voc=pv_module['beta_voc'],
-                                                                                   gamma_pmp=pv_module['gamma_pdc'],
-                                                                                   cells_in_series=pv_module['numbercells'],
-                                                                                   temp_ref=pv_module['temp_ref'])
-    cec_parameters = pvlib.pvsystem.calcparams_cec(effective_irradiance=effective_irradiance,
-                                                   temp_cell=temp_cell,
-                                                   alpha_sc=pv_module['alpha_sc'], a_ref=a_ref, I_L_ref=I_L_ref, I_o_ref=I_o_ref,
-                                                   R_sh_ref=R_sh_ref, R_s=R_s, Adjust=Adjust)
-    mpp_scenario = pvlib.pvsystem.max_power_point(*cec_parameters,
-                                                  method='newton')
+    I_L_ref, I_o_ref, R_s, R_sh_ref, a_ref, Adjust = pvlib.ivtools.sdm.fit_cec_sam(
+        celltype=pv_module['celltype'],
+        v_mp=pv_module['v_mp'],
+        i_mp=pv_module['i_mp'],
+        v_oc=pv_module['v_oc'],
+        i_sc=pv_module['i_sc'],
+        alpha_sc=pv_module['alpha_sc'],
+        beta_voc=pv_module['beta_voc'],
+        gamma_pmp=pv_module['gamma_pdc'],
+        cells_in_series=pv_module['numbercells'],
+        temp_ref=pv_module['temp_ref'])
+    cec_parameters = pvlib.pvsystem.calcparams_cec(
+        effective_irradiance=effective_irradiance,
+        temp_cell=temp_cell,
+        alpha_sc=pv_module['alpha_sc'],
+        a_ref=a_ref,
+        I_L_ref=I_L_ref,
+        I_o_ref=I_o_ref,
+        R_sh_ref=R_sh_ref,
+        R_s=R_s,
+        Adjust=Adjust)
+    mpp_scenario = pvlib.pvsystem.max_power_point(*cec_parameters, method='newton')
     return mpp_scenario
 
 
@@ -84,15 +94,23 @@ def _get_solarposition(scenario_location, current_time):
     return solarpos
 
 
-def _request_meteodata(_folder_data):
-    return None #EDITED: Return None to skip CSV loading since data is unavailable
+def _request_meteodata(file_path):
+    try:
+        df = pd.read_csv(file_path)
+        df['DateTime'] = pd.to_datetime(df['DateTime'])
+        df.set_index('DateTime', inplace=True)
+        return df.sort_index()
+    except Exception as e:
+        print(f"Error loading meteo data: {e}")
+        return None
 
 
 def _send_energy_to_influx_db(influx_conf, write_api, tag_id, report):
     # TODO - Write (DC and AC production) to InfluxDB, in an appropiate _mesurement, _field and ID
     # TODO - Optionally indicate the correct type for the values to the DB
-    point_to_store = Point("energy_production").tag("location", tag_id).field("AC", float(report['energyACProduction'])).field("DC", float(report['energyDCProduction'])) #EDITED: Create Point object
-    write_api.write(bucket=influx_conf['influx_bucket'], org=influx_conf['influx_org'], record=point_to_store) #EDITED: Write data to InfluxDB
+    point_to_store = Point("energy_production").tag("location", tag_id).field("AC", float(report['energyACProduction'])).field("DC", float(report['energyDCProduction']))
+    write_api.write(bucket=influx_conf['influx_bucket'], org=influx_conf['influx_org'], record=point_to_store)
+
 
 
 def _get_influx_db(influx_conf):
@@ -122,7 +140,13 @@ def main():
                                   modules_line=18, columns_array=18, name_array='UAB')
     system_UAB = PVSystem(arrays=UAB_array)
 
-    meteo_data = None #EDITED: Set to None to use mock data
+
+    
+    folder_path = "WeatherData/"
+    file_name = "meteo_processed.csv"
+
+    meteo_data = _request_meteodata(os.path.join(folder_path, file_name))
+
     while True:
         time_now = datetime.datetime.now(datetime.timezone.utc)
         current_time = time_now.replace(year=2020)
@@ -131,8 +155,7 @@ def main():
                                                                meteo_specific_UAB)
         solarpos_UAB = _get_solarposition(scenario_location=location_UAB, current_time=current_time)
 
-        # TODO -  Subtitute ... for Irradiance column
-        if meteo_specific_UAB is not None and meteo_specific_UAB['Irradiance'] != 0: #EDITED: Use Irradiance key
+        if meteo_specific_UAB is not None and meteo_specific_UAB['Irradiance'] != 0: 
             effective_irradiance_UAB = _get_effective_irradiance(scenario_config=UAB_config,
                                                                  solar_position=solarpos_UAB,
                                                                  meteo_data=meteo_specific_UAB)
