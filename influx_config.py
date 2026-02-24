@@ -1,7 +1,7 @@
 influx_db_config = {
     "broker_id": "",
     "influx_host": "localhost", #EDITED: Set host
-    "influx_port": 8086, #EDITED: Set port
+    "influx_port": "8086", #EDITED: Set port
     "influx_user": "admin",
     "influx_password": "admin123456", #EDITED: Set password
     "influx_database": "solar_viz_bucket", #EDITED: Set database

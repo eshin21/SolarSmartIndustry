@@ -10,7 +10,7 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 from pvlib.location import Location
 from pvlib.pvsystem import PVSystem, Array, FixedMount
 
-execution_period = 300
+execution_period = 5
 
 
 def _get_specific_data(full_data, current_time, prev_time_data, prev_data):
