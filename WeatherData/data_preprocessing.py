@@ -1,20 +1,19 @@
 import os
 import pandas as pd
-
+from pathlib import Path
 
 def main():
-    folder_path = 'Data/'
-    files_in_folder = os.listdir(folder_path)
+    folder_path = Path(__file__).parent / "Data"
+    file_name = "Dades_XEMA_20260217.csv"
 
     df = pd.DataFrame()
-    # date_format = '%d/%m/%y %I:%M:%S %p'  #EDITED: Specify the date format of the downloaded data.
-    date_format = '%Y-%m-%d %H:%M:%S'  #EDITED: Specify the date format of the downloaded data.
+    date_format = '%d/%m/%y %I:%M:%S %p'  #EDITED: Specify the date format of the downloaded data.
+    # date_format = '%Y-%m-%d %H:%M:%S'  #EDITED: Specify the date format of the downloaded data.
 
 
-    for file_name in files_in_folder:
-        with open(folder_path + file_name, 'rt', encoding='utf-8') as f:
+    with open(folder_path / file_name, 'rt', encoding='utf-8') as f:
 
-            df = pd.read_csv(f, sep=',', encoding='utf-8', header=0, engine='pyarrow')  #EDITED: Complete with the remaining parts of the read_csv function.
+        df = pd.read_csv(f, sep=',', encoding='utf-8', header=0, engine='pyarrow')  #EDITED: Complete with the remaining parts of the read_csv function.
 
     # TODO - Complete the remaining parts of the script.
     df.DATA_LECTURA = pd.to_datetime(df['DATA_LECTURA'], format=date_format) #EDITED: Convert DATA_LECTURA to datetime
