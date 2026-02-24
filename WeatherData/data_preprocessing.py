@@ -3,17 +3,25 @@ import pandas as pd
 from pathlib import Path
 
 def main():
-    folder_path = str(Path(__file__).parent / "Data")
-    file_name = "Dades_XEMA_20260217.csv"
-
+    folder_path = 'WeatherData/Data/'
+    files_in_folder = os.listdir(folder_path)
     df = pd.DataFrame()
-    date_format = '%d/%m/%y %I:%M:%S %p'  #EDITED: Specify the date format of the downloaded data.
-    # date_format = '%Y-%m-%d %H:%M:%S'  #EDITED: Specify the date format of the downloaded data.
+    date_format = '%d/%m/%Y %I:%M:%S %p'
 
+    for file_name in files_in_folder:
+        if not file_name.endswith('.csv'):
+            continue
 
-    with open(os.path.join(folder_path, file_name), 'rt', encoding='utf-8') as f:
+        else:
+            with open(folder_path + file_name, 'rt', encoding='utf-8') as f:
+                temp_df = pd.read_csv(f, sep=',', encoding='utf-8', header=0, engine='python')
+            
+                temp_df.DATA_LECTURA = pd.to_datetime(temp_df.DATA_LECTURA, format=date_format)
+                temp_df.sort_values(by='DATA_LECTURA', inplace=True)
+                temp_df.reset_index(inplace=True, drop=True)
+            
+                df = pd.concat([df, temp_df], ignore_index=True)
 
-        df = pd.read_csv(f, sep=',', encoding='utf-8', header=0, engine='pyarrow')  #EDITED: Complete with the remaining parts of the read_csv function.
 
     # TODO - Complete the remaining parts of the script.
     df.DATA_LECTURA = pd.to_datetime(df['DATA_LECTURA'], format='mixed', dayfirst=True) #EDITED: Convert DATA_LECTURA to datetime
