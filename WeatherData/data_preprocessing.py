@@ -7,11 +7,14 @@ def main():
     files_in_folder = os.listdir(folder_path)
 
     df = pd.DataFrame()
-    date_format = '%d/%m/%y %H:%M:%S %p'  #EDITED: Specify the date format of the downloaded data.
+    # date_format = '%d/%m/%y %I:%M:%S %p'  #EDITED: Specify the date format of the downloaded data.
+    date_format = '%Y-%m-%d %H:%M:%S'  #EDITED: Specify the date format of the downloaded data.
+
 
     for file_name in files_in_folder:
         with open(folder_path + file_name, 'rt', encoding='utf-8') as f:
-            df = pd.read_csv(f, sep=',', encoding='utf-8', header=0, engine='python')  #EDITED: Complete with the remaining parts of the read_csv function.
+
+            df = pd.read_csv(f, sep=',', encoding='utf-8', header=0, engine='pyarrow')  #EDITED: Complete with the remaining parts of the read_csv function.
 
     # TODO - Complete the remaining parts of the script.
     df.DATA_LECTURA = pd.to_datetime(df['DATA_LECTURA'], format=date_format) #EDITED: Convert DATA_LECTURA to datetime
