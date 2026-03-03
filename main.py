@@ -111,7 +111,9 @@ def _send_energy_to_influx_db(influx_conf, write_api, tag_id, report):
     point_to_store = Point("energy_production").tag("location", tag_id).field("AC", float(report['energyACProduction'])).field("DC", float(report['energyDCProduction']))
     write_api.write(bucket=influx_conf['influx_bucket'], org=influx_conf['influx_org'], record=point_to_store)
 
-
+def _send_metro_to_influx_db(influx_conf, write_api, tag_id, metro_report):
+    point_to_store = Point("wether_mesurement").tag("locationj", tag_id).field("Wind", float(metro_report.get("Wind", 0.0))).field("Rain", float(metro_report.get("Rain"))).field("Temperature", float(metro_report.get("Temperature", 0.0))).field("TemperatureMax", float(metro_report.get("TemperatureMax", 0.0))).field("TemperatureMin", float(metro_report.get("TemperatureMin")))
+    write_api.write(bucket=influx_conf['influx_bucket'], org=influx_conf['influx_org'], record=point_to_store)
 
 def _get_influx_db(influx_conf):
     # TODO - Correct port
@@ -168,7 +170,7 @@ def main():
                                                             temp_cell=temp_cell_UAB,
                                                             pv_module=pv_module)
             dc_production_UAB = system_UAB.scale_voltage_current_power(production_UAB)
-            dc_production_UAB_val = dc_production_UAB.iloc[0].p_mp / 1000
+            dc_production_UAB_val = float(dc_production_UAB.iloc[0].p_mp / 1000)
             production_ac_UAB = pvlib.inverter.pvwatts(pdc=dc_production_UAB.p_mp,
                                                        pdc0=pv_inverter['pdc0'],
                                                        eta_inv_nom=pv_inverter['eta_inv_norm'],
@@ -185,6 +187,12 @@ def main():
         }
         _send_energy_to_influx_db(influx_conf=influx_conf, write_api=write_influx_api, tag_id='UAB_Enginyeria',
                                   report=report_energy)
+        
+        if meteo_specific_UAB == None:
+            meteo_specific_UAB = {}
+
+        _send_metro_to_influx_db(influx_conf=influx_conf, write_api=write_influx_api, tag_id='UAB_Enginyeria',
+                                  metro_report=meteo_specific_UAB)
         time.sleep(execution_period)
 
 
